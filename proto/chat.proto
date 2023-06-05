@@ -1,0 +1,27 @@
+syntax = "proto3";
+package chat;
+
+import "google/protobuf/timestamp.proto";
+
+service ChatService {
+    rpc GetMessages(GetMessagesRequest) returns (stream Messages);
+}
+
+message GetMessagesRequest {
+    string name = 1;
+}
+
+message User {
+  string username = 1;
+  string avatar_url = 2;
+}
+
+message Messages {
+  enum MessageType {
+    TEXT = 0;
+    IMAGE = 1;
+  }
+  MessageType message_type = 1;
+  string message = 2;
+  google.protobuf.Timestamp time = 3;
+}

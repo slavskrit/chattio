@@ -3,6 +3,24 @@ name = "chattio"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "server"
+path = "src/server.rs"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+futures = "0.3.26"
+prost-types = "0.11"
+http = "0.2.8"
+prost = "0.11.6"
+rand = "0.8.5"
+tokio = { version = "1.25", features = ["macros", "rt-multi-thread"] }
+tokio-stream = "0.1.11"
+tonic = "0.9.2"
+tonic-web = "*"
+tower-http = "*"
+
+[build-dependencies]
+tonic-build = { features = ["prost"] }
+protoc-rust-grpc = "0.8.3"
