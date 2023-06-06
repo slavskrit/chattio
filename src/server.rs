@@ -3,7 +3,6 @@ use std::time::Duration;
 use chat::chat_service_server::{ChatService, ChatServiceServer};
 use chat::{GetMessagesRequest, Messages};
 use http::Method;
-use prost::Message;
 use prost_types::Timestamp;
 use rand::{distributions::Alphanumeric, Rng};
 use tokio::sync::mpsc;
@@ -14,8 +13,12 @@ use tower_http::cors::{Any, CorsLayer};
 
 use crate::chat::messages;
 
-pub mod chat {
-    tonic::include_proto!("chat");
+mod chat {
+    include!("chat.rs");
+
+    // Add this
+    pub(crate) const FILE_DESCRIPTOR_SET: &[u8] =
+        tonic::include_file_descriptor_set!("chat_descriptor");
 }
 
 #[derive(Default)]
@@ -59,9 +62,16 @@ impl ChatService for ChatImpl {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let port = "50051";
     let addr = format!("[::1]:{port}").parse().unwrap();
-    let chat_service = ChatServiceServer::new(ChatImpl::default());
+    let chat = ChatImpl::default();
+    let chat_service = ChatServiceServer::new(chat);
 
     println!("Starting server at {port}");
+
+    let reflection_service = tonic_reflection::server::Builder::configure()
+        .register_encoded_file_descriptor_set(chat::FILE_DESCRIPTOR_SET)
+        .build()
+        .unwrap();
+    // .expect("reflection service could not build");
 
     let cors = CorsLayer::new()
         .allow_headers(Any)
@@ -72,6 +82,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .accept_http1(true)
         .layer(cors)
         .layer(GrpcWebLayer::new())
+        .add_service(reflection_service)
         .add_service(chat_service)
         .serve(addr)
         .await?;
