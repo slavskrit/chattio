@@ -4,14 +4,19 @@ use chat::chat_service_server::{ChatService, ChatServiceServer};
 use chat::{GetMessagesRequest, Messages};
 use http::Method;
 use prost_types::Timestamp;
+use rand::distributions::Uniform;
+use rand::seq::SliceRandom;
 use rand::{distributions::Alphanumeric, Rng};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Server, Request, Response, Status};
 use tonic_web::GrpcWebLayer;
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::{Any, CorsLayer}; // 0.7.2
 
 use crate::chat::messages;
+
+mod samples;
+use crate::samples::WORDS;
 
 mod chat {
     include!("chat.rs");
@@ -34,22 +39,25 @@ impl ChatService for ChatImpl {
     ) -> Result<Response<Self::GetMessagesStream>, Status> {
         let (tx, rx) = mpsc::channel(4);
         let name = request.into_inner().name;
+        let sleep = Uniform::from(500..1000);
         println!("request {name}");
         tokio::spawn(async move {
             loop {
-                tokio::time::sleep(Duration::from_millis(10)).await;
+                let sleep_time = rand::thread_rng().sample(sleep);
+                tokio::time::sleep(Duration::from_millis(sleep_time)).await;
+                // let sample: Vec<_> = WORDS.choose_multiple(&mut rand::thread_rng(), 1).collect();
                 let s: String = rand::thread_rng()
                     .sample_iter(&Alphanumeric)
-                    .take(10000)
+                    .take(100)
                     .map(char::from)
                     .collect();
                 let reply = Messages {
                     message_type: messages::MessageType::Text.into(),
                     time: Option::Some(Timestamp {
-                        seconds: 123,
-                        nanos: 123,
+                        seconds: sleep_time as i64,
+                        nanos: sleep_time as i32,
                     }),
-                    message: String::from("test"),
+                    message: String::from(s),
                 };
                 tx.send(Ok(reply)).await.unwrap_or_default();
             }
