@@ -24,4 +24,5 @@ message Messages {
   MessageType message_type = 1;
   string message = 2;
   google.protobuf.Timestamp time = 3;
+  User user = 4;
 }

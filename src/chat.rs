@@ -21,6 +21,8 @@ pub struct Messages {
     pub message: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "3")]
     pub time: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "4")]
+    pub user: ::core::option::Option<User>,
 }
 /// Nested message and enum types in `Messages`.
 pub mod messages {

@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use chat::chat_service_server::{ChatService, ChatServiceServer};
-use chat::{GetMessagesRequest, Messages};
+use chat::{GetMessagesRequest, Messages, User};
 use http::Method;
 use prost_types::Timestamp;
 use rand::distributions::Uniform;
@@ -62,6 +62,13 @@ impl ChatService for ChatImpl {
                     .map(char::from)
                     .collect();
                 let message_type_text = rand::thread_rng().gen_bool(1.0 / 4.0);
+                let user = User {
+                    username: WORDS
+                        .choose_multiple(&mut rand::thread_rng(), 2)
+                        .copied()
+                        .collect(),
+                    avatar_url: String::from("https://loremflickr.com/100/100/cat"),
+                };
                 if message_type_text {
                     let h = rand::thread_rng().sample(image) * 10;
                     let w = rand::thread_rng().sample(image) * 10;
@@ -72,6 +79,7 @@ impl ChatService for ChatImpl {
                             nanos: 0,
                         }),
                         message: format!("https://loremflickr.com/{h}/{w}"),
+                        user: Option::Some(user),
                     };
                     tx.send(Ok(reply)).await.unwrap_or_default();
                 } else {
@@ -82,6 +90,7 @@ impl ChatService for ChatImpl {
                             nanos: 0,
                         }),
                         message: String::from(a),
+                        user: Option::Some(user),
                     };
                     tx.send(Ok(reply)).await.unwrap_or_default();
                 }
