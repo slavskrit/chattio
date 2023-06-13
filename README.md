@@ -11,7 +11,7 @@ grpc_cli call localhost:50051 chat.ChatService.GetMessages  "name:'123'"
 
 Given next proto structure:
 
-proto/chat.proto
+[proto/chat.proto](https://github.com/slavskrit/chattio/blob/aa5c5d4cb0841f4e60ea0aeac876b2b11d7979cb/proto/chat.proto)
 
 
 Steps:
