@@ -7,6 +7,7 @@ use prost_types::Timestamp;
 use rand::distributions::Uniform;
 use rand::seq::SliceRandom;
 use rand::{distributions::Alphanumeric, Rng};
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Server, Request, Response, Status};
@@ -40,26 +41,50 @@ impl ChatService for ChatImpl {
         let (tx, rx) = mpsc::channel(4);
         let name = request.into_inner().name;
         let sleep = Uniform::from(500..1000);
+        let image = Uniform::from(12..40);
         println!("request {name}");
         tokio::spawn(async move {
             loop {
+                let start = SystemTime::now();
+                let since_the_epoch = start
+                    .duration_since(UNIX_EPOCH)
+                    .expect("Time went backwards");
                 let sleep_time = rand::thread_rng().sample(sleep);
                 tokio::time::sleep(Duration::from_millis(sleep_time)).await;
-                // let sample: Vec<_> = WORDS.choose_multiple(&mut rand::thread_rng(), 1).collect();
+                let sample: Vec<&str> = WORDS
+                    .choose_multiple(&mut rand::thread_rng(), 10)
+                    .copied()
+                    .collect();
+                let a = sample.join(" ");
                 let s: String = rand::thread_rng()
                     .sample_iter(&Alphanumeric)
                     .take(100)
                     .map(char::from)
                     .collect();
-                let reply = Messages {
-                    message_type: messages::MessageType::Text.into(),
-                    time: Option::Some(Timestamp {
-                        seconds: sleep_time as i64,
-                        nanos: sleep_time as i32,
-                    }),
-                    message: String::from(s),
-                };
-                tx.send(Ok(reply)).await.unwrap_or_default();
+                let message_type_text = rand::thread_rng().gen_bool(1.0 / 4.0);
+                if message_type_text {
+                    let h = rand::thread_rng().sample(image) * 10;
+                    let w = rand::thread_rng().sample(image) * 10;
+                    let reply = Messages {
+                        message_type: messages::MessageType::Image.into(),
+                        time: Option::Some(Timestamp {
+                            seconds: since_the_epoch.as_secs() as i64,
+                            nanos: 0,
+                        }),
+                        message: format!("https://loremflickr.com/{h}/{w}"),
+                    };
+                    tx.send(Ok(reply)).await.unwrap_or_default();
+                } else {
+                    let reply = Messages {
+                        message_type: messages::MessageType::Text.into(),
+                        time: Option::Some(Timestamp {
+                            seconds: since_the_epoch.as_secs() as i64,
+                            nanos: 0,
+                        }),
+                        message: String::from(a),
+                    };
+                    tx.send(Ok(reply)).await.unwrap_or_default();
+                }
             }
         });
         Ok(Response::new(ReceiverStream::new(rx)))
